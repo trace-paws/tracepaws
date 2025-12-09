@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Remove experimental optimizeCss that was causing critters module error
-  experimental: {
-    // Remove optimizeCss until properly configured
-    // optimizeCss: false
-  },
+  // Remove experimental features causing build issues
+  experimental: {},
   
   // Image optimization for Cloudflare R2
   images: {
@@ -46,9 +43,6 @@ const nextConfig = {
       },
     ]
   },
-  
-  // Disable telemetry
-  telemetry: false,
 }
 
 module.exports = nextConfig
