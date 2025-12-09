@@ -1,61 +1,64 @@
-import type { Config } from "tailwindcss"
+import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./utils/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        // TracePaws brand colors
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        // TracePaws Brand Colors
         primary: {
-          DEFAULT: "#0f766e",
-          foreground: "#ffffff"
+          DEFAULT: '#0f766e',
+          50: '#f0fdfa',
+          100: '#ccfbf1',
+          500: '#0f766e',
+          600: '#0d5d5b',
+          900: '#134e4a'
         },
-        secondary: {
-          DEFAULT: "#f1f5f9", 
-          foreground: "#1e293b"
+        teal: {
+          50: '#f0fdfa',
+          100: '#ccfbf1',
+          500: '#0f766e',
+          600: '#0f766e',
+          700: '#0d5d5b'
         },
-        muted: {
-          DEFAULT: "#f8fafc",
-          foreground: "#64748b"
+        // Status Colors
+        blue: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8'
         },
-        accent: {
-          DEFAULT: "#0f766e",
-          foreground: "#ffffff"
+        gray: {
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
+          400: '#9ca3af',
+          500: '#6b7280',
+          600: '#4b5563',
+          700: '#374151',
+          800: '#1f2937',
+          900: '#111827'
         },
-        destructive: {
-          DEFAULT: "#ef4444",
-          foreground: "#ffffff"
-        },
-        // TracePaws status colors
-        "status": {
-          received: "#3b82f6",
-          progress: "#f59e0b", 
-          ready: "#16a34a",
-          completed: "#6b7280"
+        green: {
+          500: '#22c55e',
+          600: '#16a34a'
         }
       },
-      fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"]
+      backgroundImage: {
+        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+        "gradient-conic":
+          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
-      spacing: {
-        'touch': '44px',
-        'nav': '64px',
-        'safe-top': 'env(safe-area-inset-top)',
-        'safe-bottom': 'env(safe-area-inset-bottom)'
-      }
-    }
+    },
   },
-  plugins: [require("tailwindcss-animate")]
-}
+  plugins: [],
+};
 
-export default config
+export default config;
