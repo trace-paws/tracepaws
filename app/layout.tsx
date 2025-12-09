@@ -33,12 +33,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning style={{ margin: 0, padding: 0, height: '100%' }}>
       <head>
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={inter.className}>
-        <div id="root">
+      <body className={inter.className} style={{ margin: 0, padding: 0, height: '100%', background: '#0f766e' }}>
+        <div id="root" style={{ margin: 0, padding: 0, minHeight: '100vh', background: '#0f766e' }}>
           {children}
         </div>
       </body>
