@@ -1,6 +1,6 @@
 import { login, signup } from './actions'
 
-// Clean Geometric Design - Server Component Compatible
+// Clean Geometric Design - Fixed server action integration
 export default function LoginPage({ searchParams }: { searchParams: { error?: string; message?: string } }) {
   return (
     <div 
@@ -12,7 +12,9 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
         justifyContent: 'center',
         padding: '20px',
         position: 'relative',
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif'
+        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+        margin: 0,
+        width: '100%'
       }}
     >
       {/* Geometric background elements */}
@@ -60,8 +62,25 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
             alignItems: 'center'
           }}>
             <span style={{ fontSize: '20px', marginRight: '12px' }}>⚠️</span>
-            <p style={{ color: '#dc2626', fontSize: '14px' }}>
+            <p style={{ color: '#dc2626', fontSize: '14px', margin: 0 }}>
               {decodeURIComponent(searchParams.error)}
+            </p>
+          </div>
+        )}
+
+        {searchParams.message && (
+          <div style={{
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe', 
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '24px',
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '20px', marginRight: '12px' }}>✅</span>
+            <p style={{ color: '#2563eb', fontSize: '14px', margin: 0 }}>
+              {decodeURIComponent(searchParams.message)}
             </p>
           </div>
         )}
@@ -89,7 +108,8 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
             fontWeight: 700,
             color: '#1e293b',
             marginBottom: '8px',
-            letterSpacing: '-0.02em'
+            letterSpacing: '-0.02em',
+            margin: '0 0 8px 0'
           }}>
             TracePaws
           </h1>
@@ -97,19 +117,21 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
           <p style={{
             fontSize: '16px',
             color: '#64748b',
-            fontWeight: 500
+            fontWeight: 500,
+            margin: 0
           }}>
             Staff Portal
           </p>
         </div>
 
-        {/* Form */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Login Form */}
+        <form action={login} method="post" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <label style={{
               fontWeight: 600,
               color: '#1e293b',
-              fontSize: '14px'
+              fontSize: '14px',
+              display: 'block'
             }} htmlFor="email">
               Email Address
             </label>
@@ -121,13 +143,15 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                 borderRadius: '12px',
                 fontSize: '16px',
                 background: '#fafafa',
-                width: '100%'
+                width: '100%',
+                boxSizing: 'border-box'
               }}
               type="email"
               id="email"
               name="email"
               placeholder="Enter your email"
               required
+              autoComplete="email"
             />
           </div>
 
@@ -135,7 +159,8 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
             <label style={{
               fontWeight: 600,
               color: '#1e293b',
-              fontSize: '14px'
+              fontSize: '14px',
+              display: 'block'
             }} htmlFor="password">
               Password
             </label>
@@ -147,18 +172,20 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                 borderRadius: '12px',
                 fontSize: '16px',
                 background: '#fafafa',
-                width: '100%'
+                width: '100%',
+                boxSizing: 'border-box'
               }}
               type="password"
               id="password"
               name="password"
               placeholder="Enter your password"
               required
+              autoComplete="current-password"
             />
           </div>
 
           <button
-            formAction={login}
+            type="submit"
             style={{
               height: '52px',
               background: '#0f766e',
@@ -169,14 +196,18 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
               fontWeight: 600,
               cursor: 'pointer',
               boxShadow: '0 4px 12px rgba(15, 118, 110, 0.3)',
-              width: '100%'
+              width: '100%',
+              transition: 'all 0.3s ease'
             }}
           >
             Sign In
           </button>
+        </form>
 
+        {/* Signup Form */}
+        <form action={signup} method="post" style={{ marginTop: '16px' }}>
           <button
-            formAction={signup}
+            type="submit"
             style={{
               height: '48px',
               background: 'transparent',
@@ -187,12 +218,13 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
               fontWeight: 500,
               cursor: 'pointer',
               marginTop: '8px',
-              width: '100%'
+              width: '100%',
+              transition: 'all 0.3s ease'
             }}
           >
             Create Account
           </button>
-        </div>
+        </form>
 
         {/* Forgot Password Link */}
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
