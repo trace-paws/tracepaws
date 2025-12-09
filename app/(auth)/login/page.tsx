@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (authError) throw authError
       if (!data.user) throw new Error('Login failed')
 
-      // Get user profile and organization context
+      // Get user profile and organization context with explicit typing
       const { data: userProfile, error: profileError } = await supabase
         .from('users')
         .select(`
@@ -41,7 +41,12 @@ export default function LoginPage() {
         .single()
 
       if (profileError) throw new Error('User profile not found')
-      if (!userProfile.is_active) throw new Error('Account deactivated')
+      if (!userProfile) throw new Error('User profile not found')
+      
+      // Type-safe check for active status
+      if ('is_active' in userProfile && !userProfile.is_active) {
+        throw new Error('Account deactivated')
+      }
 
       console.log('Login successful:', userProfile.email)
       
