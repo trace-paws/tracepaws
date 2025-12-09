@@ -23,14 +23,10 @@ export default async function DashboardPage() {
     .eq('organization_id', userProfile?.organization_id)
     .single()
 
-  // Get today's pets for queue
+  // Get today's pets - simplified query to avoid TypeScript issues
   const { data: todaysPets } = await supabase
     .from('pets')
-    .select(`
-      id, tracking_id, name, pet_type, breed, 
-      owner_full_name, status, service_type, created_at,
-      created_by_user:users!pets_created_by_fkey(full_name)
-    `)
+    .select('id, tracking_id, name, pet_type, breed, owner_full_name, status, service_type, created_at')
     .eq('organization_id', userProfile?.organization_id)
     .gte('created_at', new Date().toISOString().split('T')[0])
     .order('created_at', { ascending: false })
@@ -183,7 +179,7 @@ export default async function DashboardPage() {
                             Owner: {pet.owner_full_name}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Created: {new Date(pet.created_at).toLocaleTimeString()} by {pet.created_by_user?.full_name}
+                            Received: {new Date(pet.created_at).toLocaleTimeString()}
                           </p>
                         </div>
                       </div>
