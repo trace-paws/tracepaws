@@ -1,4 +1,4 @@
-import { login } from './actions'
+import { login, signup } from './actions'
 
 export default function LoginPage() {
   return (
@@ -18,7 +18,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <form className="space-y-6">
             <h2 className="text-xl font-bold text-center text-gray-900 mb-6">
-              Staff Login
+              Staff Authentication
             </h2>
 
             {/* Email Field */}
@@ -55,41 +55,42 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Login Button */}
-            <button
-              formAction={login}
-              className="w-full h-14 bg-teal-600 text-white text-lg font-semibold rounded-xl hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-all duration-200"
-            >
-              Log In
-            </button>
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <button
+                formAction={login}
+                className="w-full h-14 bg-teal-600 text-white text-lg font-semibold rounded-xl hover:bg-teal-700 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-all duration-200"
+              >
+                Log In
+              </button>
+              
+              <button
+                formAction={signup}
+                className="w-full h-14 bg-gray-100 text-gray-700 text-lg font-semibold rounded-xl hover:bg-gray-200 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all duration-200"
+              >
+                Create Test Account
+              </button>
+            </div>
           </form>
 
-          {/* Test Users Info */}
+          {/* Instructions */}
           <div className="mt-8 p-4 bg-blue-50 rounded-xl">
-            <h3 className="font-semibold text-blue-800 mb-2">Test Users (Live Database)</h3>
-            <div className="space-y-1 text-sm text-blue-700">
-              <div>• mike@thompsonpets.com (Owner)</div>
-              <div>• sarah@thompsonpets.com (Admin)</div>
-              <div>• jennifer@peacefulpaws.com (Owner)</div>
+            <h3 className="font-semibold text-blue-800 mb-2">Testing Instructions</h3>
+            <div className="space-y-2 text-sm text-blue-700">
+              <div><strong>Option 1:</strong> Create new test account with "Create Test Account"</div>
+              <div><strong>Option 2:</strong> Use any email + password (will create if doesn't exist)</div>
+              <div><strong>Testing:</strong> Try "test@tracepaws.com" + "testpassword123"</div>
             </div>
           </div>
         </div>
 
-        {/* Trust Indicators */}
-        <div className="mt-8 text-center">
-          <div className="flex justify-center space-x-6 text-sm text-gray-500">
-            <div className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
-              <span>Secure login</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
-              <span>Live database</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-green-500">✓</span>
-              <span>Server actions</span>
-            </div>
+        {/* Database Info */}
+        <div className="mt-6 p-4 bg-white/80 backdrop-blur-sm rounded-xl">
+          <h3 className="font-semibold text-gray-800 mb-2">Database Status</h3>
+          <div className="text-sm text-gray-600 space-y-1">
+            <div>✅ Live database users: 6 profiles created</div>
+            <div>✅ Organizations: Thompson Pet, Peaceful Paws, Gentle Goodbye</div>
+            <div>🔄 Auth users: Will be created when you sign up</div>
           </div>
         </div>
       </div>
