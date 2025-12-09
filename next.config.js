@@ -1,24 +1,27 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Remove experimental optimizeCss that was causing critters module error
   experimental: {
-    optimizeCss: true,
-    optimizePackageImports: [
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-select', 
-      'lucide-react'
-    ]
+    // Remove optimizeCss until properly configured
+    // optimizeCss: false
   },
   
-  // Image optimization for photo-heavy application
+  // Image optimization for Cloudflare R2
   images: {
-    domains: [
-      'yplmrwismtztyomrvzvj.supabase.co',
-      'pub-b40d69a6bd20388eb6df9381823ae4b0.r2.dev',
-      'b40d69a6bd20388eb6df9381823ae4b0.r2.cloudflarestorage.com'
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'pub-b40d69a6bd20388eb6df9381823ae4b0.r2.dev',
+        port: '',
+        pathname: '/**',
+      },
     ],
-    formats: ['image/webp', 'image/avif'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384]
+  },
+  
+  // Environment variable configuration
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   },
   
   // Security headers
@@ -28,32 +31,24 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
             key: 'X-Frame-Options',
-            value: 'DENY'
+            value: 'DENY',
           },
           {
-            key: 'X-XSS-Protection', 
-            value: '1; mode=block'
-          }
-        ]
-      }
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
     ]
   },
   
-  // Redirects
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/dashboard',
-        permanent: false
-      }
-    ]
-  }
+  // Disable telemetry
+  telemetry: false,
 }
 
 module.exports = nextConfig
