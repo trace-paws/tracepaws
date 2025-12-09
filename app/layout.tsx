@@ -1,6 +1,5 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
-import { AuthProvider } from '@/lib/auth/auth-context'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -39,11 +38,9 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <div id="root">
-            {children}
-          </div>
-        </AuthProvider>
+        <div id="root">
+          {children}
+        </div>
       </body>
     </html>
   )
