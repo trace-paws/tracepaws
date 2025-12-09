@@ -30,27 +30,24 @@ export default function LoginPage() {
       if (authError) throw authError
       if (!data.user) throw new Error('Login failed')
 
-      // Get user profile and organization context with explicit typing
+      // Simplified query without complex joins to avoid TypeScript issues
       const { data: userProfile, error: profileError } = await supabase
         .from('users')
-        .select(`
-          *,
-          organization:organizations(*)
-        `)
+        .select('*')
         .eq('auth_id', data.user.id)
         .single()
 
       if (profileError) throw new Error('User profile not found')
       if (!userProfile) throw new Error('User profile not found')
       
-      // Type-safe check for active status
-      if ('is_active' in userProfile && !userProfile.is_active) {
+      // Now TypeScript knows the exact type from the users table
+      if (!userProfile.is_active) {
         throw new Error('Account deactivated')
       }
 
       console.log('Login successful:', userProfile.email)
       
-      // Redirect to dashboard
+      // Redirect to dashboard (AuthProvider will load organization context)
       router.push('/dashboard')
 
     } catch (error: any) {
