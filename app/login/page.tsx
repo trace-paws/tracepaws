@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { signIn } from './actions'
-import { redirectToSignup } from './signup-action'
+import { signIn, signUp } from './actions'
 
 export default async function LoginPage() {
   const supabase = createClient()
@@ -214,9 +213,9 @@ export default async function LoginPage() {
           </button>
         </form>
 
-        {/* Create Account Button - Updated to redirect to /signup */}
+        {/* Create Account Button - Now redirects to /signup */}
         <form
-          action={redirectToSignup}
+          action={signUp}
           method="post"
           style={{ marginTop: '16px' }}
         >
