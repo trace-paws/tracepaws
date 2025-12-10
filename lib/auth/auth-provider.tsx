@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load user profile with organization context
   const loadUserProfile = async (userId: string) => {
     try {
-      setLoading(true)
+      console.log('Loading user profile for:', userId)
 
       // Single query to get user + organization (efficient)
       const { data: userWithOrg, error } = await supabase
@@ -68,10 +68,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error loading user profile:', error)
+        // Don't throw here - let auth state handle it
         return
       }
 
       if (userWithOrg) {
+        console.log('User profile loaded:', userWithOrg.email, userWithOrg.organization?.name)
         setProfile(userWithOrg)
         setOrganization(userWithOrg.organization as Organization)
         
@@ -80,36 +82,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .from('users')
           .update({ last_seen_at: new Date().toISOString() })
           .eq('id', userWithOrg.id)
+          .then(() => console.log('Last seen updated'))
       }
     } catch (error) {
       console.error('Error loading user profile:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
   // Initialize authentication state
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user)
-        loadUserProfile(session.user.id)
-      } else {
-        setLoading(false)
+    let mounted = true
+
+    const initializeAuth = async () => {
+      try {
+        console.log('Initializing auth...')
+        
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession()
+        
+        if (error) {
+          console.error('Session error:', error)
+          if (mounted) setLoading(false)
+          return
+        }
+
+        if (session?.user) {
+          console.log('Initial session found:', session.user.email)
+          if (mounted) {
+            setUser(session.user)
+            await loadUserProfile(session.user.id)
+          }
+        } else {
+          console.log('No initial session')
+        }
+        
+        if (mounted) setLoading(false)
+      } catch (error) {
+        console.error('Auth initialization error:', error)
+        if (mounted) setLoading(false)
       }
-    })
+    }
+
+    initializeAuth()
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email)
         
-        setUser(session?.user ?? null)
+        if (!mounted) return
 
-        if (session?.user) {
+        if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user)
+          setLoading(true) // Show loading while getting profile
           await loadUserProfile(session.user.id)
+          setLoading(false)
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setProfile(null)
+          setOrganization(null)
+          setLoading(false)
+        } else if (session?.user) {
+          setUser(session.user)
+          if (!profile) {
+            setLoading(true)
+            await loadUserProfile(session.user.id)
+            setLoading(false)
+          }
         } else {
+          setUser(null)
           setProfile(null)
           setOrganization(null)
           setLoading(false)
@@ -117,11 +158,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signOut = async () => {
     try {
+      console.log('Signing out...')
       await supabase.auth.signOut()
       setUser(null)
       setProfile(null)
@@ -145,6 +190,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     refreshProfile
   }
+
+  console.log('Auth state:', { 
+    user: user?.email, 
+    profile: profile?.email, 
+    organization: organization?.name, 
+    loading 
+  })
 
   return (
     <AuthContext.Provider value={value}>
