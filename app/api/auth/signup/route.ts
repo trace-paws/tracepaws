@@ -1,48 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, email, firstName, lastName, businessName, slug } = await request.json()
+    const { email, password, firstName, lastName, businessName } = await request.json()
 
     // Validate required fields
-    if (!userId || !email || !firstName || !lastName || !businessName) {
+    if (!email || !password || !firstName || !lastName || !businessName) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
-    // Create Supabase server client with service role for admin operations
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!, // Service role for admin operations
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: '', ...options })
-          }
-        }
+    const supabase = createClient()
+
+    // Create user account with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: email.toLowerCase().trim(),
+      password: password,
+      email_confirm: true, // Auto-confirm email for now
+      user_metadata: {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        business_name: businessName.trim()
       }
-    )
+    })
+
+    if (authError) {
+      console.error('Auth creation error:', authError)
+      return NextResponse.json(
+        { error: authError.message },
+        { status: 400 }
+      )
+    }
+
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: 'Failed to create user account' },
+        { status: 500 }
+      )
+    }
 
     // Create organization record
+    const slug = businessName.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim()
+
     const { data: orgData, error: orgError } = await supabase
       .from('organizations')
       .insert({
-        name: businessName,
-        slug: slug || businessName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
-        email: email,
+        name: businessName.trim(),
+        slug: slug,
+        email: email.toLowerCase().trim(),
         subscription_status: 'trialing',
-        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         settings: {
           checkpoints: [
             { code: 'intake', label: 'Received', required: true, photo_required: true, min_photos: 1 },
@@ -72,6 +86,8 @@ export async function POST(request: NextRequest) {
 
     if (orgError) {
       console.error('Organization creation error:', orgError)
+      // Clean up the user if org creation failed
+      await supabase.auth.admin.deleteUser(authData.user.id)
       return NextResponse.json(
         { error: 'Failed to create organization: ' + orgError.message },
         { status: 500 }
@@ -82,24 +98,21 @@ export async function POST(request: NextRequest) {
     const { error: userError } = await supabase
       .from('users')
       .insert({
-        auth_id: userId,
+        auth_id: authData.user.id,
         organization_id: orgData.id,
-        email: email,
-        first_name: firstName,
-        last_name: lastName,
+        email: email.toLowerCase().trim(),
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         role: 'owner',
         is_active: true
       })
 
     if (userError) {
       console.error('User profile creation error:', userError)
+      // Clean up both user and organization if profile creation failed
+      await supabase.auth.admin.deleteUser(authData.user.id)
+      await supabase.from('organizations').delete().eq('id', orgData.id)
       
-      // Clean up organization if user creation failed
-      await supabase
-        .from('organizations')
-        .delete()
-        .eq('id', orgData.id)
-
       return NextResponse.json(
         { error: 'Failed to create user profile: ' + userError.message },
         { status: 500 }
@@ -113,7 +126,7 @@ export async function POST(request: NextRequest) {
         event_type: 'user_signup',
         organization_id: orgData.id,
         details: {
-          user_id: userId,
+          user_id: authData.user.id,
           email: email,
           business_name: businessName,
           signup_method: 'email'
@@ -122,6 +135,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      user: {
+        id: authData.user.id,
+        email: authData.user.email
+      },
       organization: {
         id: orgData.id,
         name: orgData.name,
