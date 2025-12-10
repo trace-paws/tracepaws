@@ -1,9 +1,20 @@
-import { login, signup } from './actions'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { signIn } from './actions'
+import { redirectToSignup } from './signup-action'
 
-// Clean Geometric Design - Fixed server action integration
-export default function LoginPage({ searchParams }: { searchParams: { error?: string; message?: string } }) {
+export default async function LoginPage() {
+  const supabase = createClient()
+  
+  // Check if user is already logged in
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (user) {
+    redirect('/dashboard')
+  }
+
   return (
-    <div 
+    <div
       style={{
         minHeight: '100vh',
         background: '#0f766e',
@@ -18,121 +29,111 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
       }}
     >
       {/* Geometric background elements */}
-      <div style={{
-        position: 'absolute',
-        top: '10%',
-        left: '10%',
-        width: '100px',
-        height: '100px',
-        background: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: '20px',
-        transform: 'rotate(45deg)'
-      }} />
+      <div
+        style={{
+          position: 'absolute',
+          top: '10%',
+          left: '10%',
+          width: '100px',
+          height: '100px',
+          background: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: '20px',
+          transform: 'rotate(45deg)'
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '15%',
+          right: '15%',
+          width: '80px',
+          height: '80px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          borderRadius: '50%'
+        }}
+      />
       
-      <div style={{
-        position: 'absolute',
-        bottom: '15%',
-        right: '15%',
-        width: '80px',
-        height: '80px',
-        background: 'rgba(255, 255, 255, 0.03)',
-        borderRadius: '50%'
-      }} />
-
-      <div style={{
-        background: 'white',
-        borderRadius: '24px',
-        boxShadow: '0 32px 80px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-        padding: '48px',
-        width: '100%',
-        maxWidth: '420px',
-        position: 'relative',
-        zIndex: 10
-      }}>
-        
-        {/* Error/Success Messages */}
-        {searchParams.error && (
-          <div style={{
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <span style={{ fontSize: '20px', marginRight: '12px' }}>⚠️</span>
-            <p style={{ color: '#dc2626', fontSize: '14px', margin: 0 }}>
-              {decodeURIComponent(searchParams.error)}
-            </p>
-          </div>
-        )}
-
-        {searchParams.message && (
-          <div style={{
-            background: '#eff6ff',
-            border: '1px solid #bfdbfe', 
-            borderRadius: '12px',
-            padding: '16px',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <span style={{ fontSize: '20px', marginRight: '12px' }}>✅</span>
-            <p style={{ color: '#2563eb', fontSize: '14px', margin: 0 }}>
-              {decodeURIComponent(searchParams.message)}
-            </p>
-          </div>
-        )}
-
-        {/* Header */}
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '24px',
+          boxShadow: '0 32px 80px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+          padding: '48px',
+          width: '100%',
+          maxWidth: '420px',
+          position: 'relative',
+          zIndex: 10
+        }}
+      >
+        {/* Logo section */}
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <div style={{
-            width: '64px',
-            height: '64px',
-            background: 'linear-gradient(135deg, #0f766e 0%, #0d665c 100%)',
-            borderRadius: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px',
-            fontSize: '28px',
-            color: 'white',
-            boxShadow: '0 8px 24px rgba(15, 118, 110, 0.4)'
-          }}>
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              background: 'linear-gradient(135deg, #0f766e 0%, #0d665c 100%)',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 24px',
+              fontSize: '28px',
+              color: 'white',
+              boxShadow: '0 8px 24px rgba(15, 118, 110, 0.4)'
+            }}
+          >
             🐾
           </div>
-          
-          <h1 style={{
-            fontSize: '28px',
-            fontWeight: 700,
-            color: '#1e293b',
-            marginBottom: '8px',
-            letterSpacing: '-0.02em',
-            margin: '0 0 8px 0'
-          }}>
+          <h1
+            style={{
+              fontSize: '28px',
+              fontWeight: 700,
+              color: '#1e293b',
+              marginBottom: '8px',
+              letterSpacing: '-0.02em',
+              margin: '0 0 8px 0'
+            }}
+          >
             TracePaws
           </h1>
-          
-          <p style={{
-            fontSize: '16px',
-            color: '#64748b',
-            fontWeight: 500,
-            margin: 0
-          }}>
+          <p
+            style={{
+              fontSize: '16px',
+              color: '#64748b',
+              fontWeight: 500,
+              margin: 0
+            }}
+          >
             Staff Portal
           </p>
         </div>
 
         {/* Login Form */}
-        <form action={login} method="post" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{
-              fontWeight: 600,
-              color: '#1e293b',
-              fontSize: '14px',
-              display: 'block'
-            }} htmlFor="email">
+        <form
+          action={signIn}
+          method="post"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px'
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}
+          >
+            <label
+              style={{
+                fontWeight: 600,
+                color: '#1e293b',
+                fontSize: '14px',
+                display: 'block'
+              }}
+              htmlFor="email"
+            >
               Email Address
             </label>
             <input
@@ -155,13 +156,22 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
             />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{
-              fontWeight: 600,
-              color: '#1e293b',
-              fontSize: '14px',
-              display: 'block'
-            }} htmlFor="password">
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}
+          >
+            <label
+              style={{
+                fontWeight: 600,
+                color: '#1e293b',
+                fontSize: '14px',
+                display: 'block'
+              }}
+              htmlFor="password"
+            >
               Password
             </label>
             <input
@@ -204,8 +214,12 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
           </button>
         </form>
 
-        {/* Signup Form */}
-        <form action={signup} method="post" style={{ marginTop: '16px' }}>
+        {/* Create Account Button - Updated to redirect to /signup */}
+        <form
+          action={redirectToSignup}
+          method="post"
+          style={{ marginTop: '16px' }}
+        >
           <button
             type="submit"
             style={{
@@ -226,14 +240,17 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
           </button>
         </form>
 
-        {/* Forgot Password Link */}
+        {/* Forgot password link */}
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <a href="#forgot" style={{
-            color: '#0f766e',
-            textDecoration: 'none',
-            fontSize: '14px',
-            fontWeight: 500
-          }}>
+          <a
+            href="#forgot"
+            style={{
+              color: '#0f766e',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: 500
+            }}
+          >
             Forgot your password?
           </a>
         </div>
