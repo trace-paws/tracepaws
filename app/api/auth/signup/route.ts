@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, firstName, lastName, businessName } = await request.json()
+    const { email, password, firstName, lastName, organizationName } = await request.json()
 
     // Validate required fields
-    if (!email || !password || !firstName || !lastName || !businessName) {
+    if (!email || !password || !firstName || !lastName || !organizationName) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'All fields are required' },
         { status: 400 }
       )
     }
 
-    const supabase = createClient()
+    // Create admin client for user creation
+    const supabase = await createAdminClient()
 
     // Create user account with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -21,14 +22,14 @@ export async function POST(request: NextRequest) {
       password: password,
       email_confirm: true, // Auto-confirm email for now
       user_metadata: {
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        business_name: businessName.trim()
+        first_name: firstName,
+        last_name: lastName,
+        organization_name: organizationName
       }
     })
 
     if (authError) {
-      console.error('Auth creation error:', authError)
+      console.error('Auth user creation error:', authError)
       return NextResponse.json(
         { error: authError.message },
         { status: 400 }
@@ -37,117 +38,73 @@ export async function POST(request: NextRequest) {
 
     if (!authData.user) {
       return NextResponse.json(
-        { error: 'Failed to create user account' },
+        { error: 'User creation failed' },
         { status: 500 }
       )
     }
 
     // Create organization record
-    const slug = businessName.toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim()
-
-    const { data: orgData, error: orgError } = await supabase
+    const { data: organization, error: orgError } = await supabase
       .from('organizations')
       .insert({
-        name: businessName.trim(),
-        slug: slug,
+        name: organizationName,
+        slug: organizationName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
         email: email.toLowerCase().trim(),
         subscription_status: 'trialing',
-        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-        settings: {
-          checkpoints: [
-            { code: 'intake', label: 'Received', required: true, photo_required: true, min_photos: 1 },
-            { code: 'prepared', label: 'Prepared for Cremation', required: true, photo_required: true, min_photos: 1 },
-            { code: 'entering_chamber', label: 'Entering Chamber', required: true, photo_required: true, min_photos: 2 },
-            { code: 'cremated', label: 'Cremation Complete', required: true, photo_required: true, min_photos: 1 },
-            { code: 'packaged', label: 'Packaged', required: true, photo_required: true, min_photos: 1 },
-            { code: 'ready', label: 'Ready for Pickup', required: true, photo_required: false },
-            { code: 'completed', label: 'Picked Up / Delivered', required: false, photo_required: false }
-          ],
-          service_types: [
-            { code: 'private', label: 'Private Cremation', enabled: true },
-            { code: 'individual', label: 'Individual Cremation', enabled: true },
-            { code: 'communal', label: 'Communal Cremation', enabled: true }
-          ],
-          notifications: {
-            email_intake: true,
-            email_complete: true,
-            email_ready: true,
-            sms_intake: true,
-            sms_ready: true
-          }
-        }
+        subscription_plan: 'starter',
+        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
       })
-      .select()
+      .select('*')
       .single()
 
     if (orgError) {
       console.error('Organization creation error:', orgError)
-      // Clean up the user if org creation failed
+      // Clean up auth user if organization creation fails
       await supabase.auth.admin.deleteUser(authData.user.id)
       return NextResponse.json(
-        { error: 'Failed to create organization: ' + orgError.message },
+        { error: 'Organization creation failed' },
         { status: 500 }
       )
     }
 
-    // Create user profile linked to organization
-    const { error: userError } = await supabase
+    // Create user profile
+    const { data: userProfile, error: profileError } = await supabase
       .from('users')
       .insert({
+        id: authData.user.id,
         auth_id: authData.user.id,
-        organization_id: orgData.id,
+        organization_id: organization.id,
         email: email.toLowerCase().trim(),
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        role: 'owner',
-        is_active: true
+        first_name: firstName,
+        last_name: lastName,
+        role: 'owner' // First user becomes owner
       })
+      .select('*')
+      .single()
 
-    if (userError) {
-      console.error('User profile creation error:', userError)
-      // Clean up both user and organization if profile creation failed
+    if (profileError) {
+      console.error('User profile creation error:', profileError)
+      // Clean up auth user and organization if profile creation fails
       await supabase.auth.admin.deleteUser(authData.user.id)
-      await supabase.from('organizations').delete().eq('id', orgData.id)
-      
+      await supabase.from('organizations').delete().eq('id', organization.id)
       return NextResponse.json(
-        { error: 'Failed to create user profile: ' + userError.message },
+        { error: 'User profile creation failed' },
         { status: 500 }
       )
     }
-
-    // Log the signup event
-    await supabase
-      .from('system_logs')
-      .insert({
-        event_type: 'user_signup',
-        organization_id: orgData.id,
-        details: {
-          user_id: authData.user.id,
-          email: email,
-          business_name: businessName,
-          signup_method: 'email'
-        }
-      })
 
     return NextResponse.json({
       success: true,
-      user: {
-        id: authData.user.id,
-        email: authData.user.email
-      },
-      organization: {
-        id: orgData.id,
-        name: orgData.name,
-        slug: orgData.slug
+      message: 'Account created successfully!',
+      data: {
+        user: authData.user,
+        organization: organization,
+        profile: userProfile
       }
-    })
+    }, { status: 201 })
 
   } catch (error) {
-    console.error('Signup API error:', error)
+    console.error('Signup error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
