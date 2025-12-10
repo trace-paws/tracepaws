@@ -20,26 +20,47 @@ export function ProtectedRoute({
   const { user, profile, organization, loading } = useAuth()
   const router = useRouter()
 
-  // Loading state - show spinner while checking auth
+  console.log('ProtectedRoute check:', { 
+    user: user?.email, 
+    profile: profile?.email, 
+    loading,
+    hasOrganization: !!organization 
+  })
+
+  // Loading state - IMPORTANT: Don't redirect while loading
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-muted-foreground">Loading...</p>
+          <div className="w-8 h-8 border-4 border-[#0f766e] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm text-gray-600">Loading your workspace...</p>
         </div>
       </div>
     )
   }
 
   // Not authenticated - redirect to login
-  if (!user || !profile) {
+  if (!user) {
+    console.log('No user found, redirecting to login')
     if (fallback) {
       return <>{fallback}</>
     }
     
     router.push('/login')
     return null
+  }
+
+  // User authenticated but no profile - this might happen during signup
+  if (!profile) {
+    console.log('User found but no profile, waiting...')
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-[#0f766e] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm text-gray-600">Setting up your account...</p>
+        </div>
+      </div>
+    )
   }
 
   // Account deactivated
@@ -51,12 +72,12 @@ export function ProtectedRoute({
             <span className="text-2xl">🚫</span>
           </div>
           <h2 className="text-xl font-bold">Account Deactivated</h2>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             Your account has been deactivated. Please contact your organization owner.
           </p>
           <button 
             onClick={() => router.push('/login')}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
+            className="bg-[#0f766e] text-white px-4 py-2 rounded-lg hover:bg-[#0d665c]"
           >
             Back to Login
           </button>
@@ -67,6 +88,7 @@ export function ProtectedRoute({
 
   // Role checking
   if (!requiredRole.includes(profile.role)) {
+    console.log('Role check failed:', { userRole: profile.role, requiredRole })
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="max-w-md text-center space-y-4">
@@ -74,16 +96,16 @@ export function ProtectedRoute({
             <span className="text-2xl">⚠️</span>
           </div>
           <h2 className="text-xl font-bold">Access Denied</h2>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             You don't have permission to access this page.
             Required role: {requiredRole.join(' or ')}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500">
             Your role: {profile.role}
           </p>
           <button 
             onClick={() => router.push('/dashboard')}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
+            className="bg-[#0f766e] text-white px-4 py-2 rounded-lg hover:bg-[#0d665c]"
           >
             Go to Dashboard
           </button>
@@ -105,7 +127,7 @@ export function ProtectedRoute({
           <h2 className="text-xl font-bold">
             {isTrialing ? 'Subscription Required' : 'Billing Issue'}
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-gray-600">
             {isTrialing 
               ? 'This feature requires an active subscription. Your trial ends soon.' 
               : 'Please update your billing information to continue.'}
@@ -119,7 +141,7 @@ export function ProtectedRoute({
             </button>
             <button 
               onClick={() => router.push('/settings/billing')}
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
+              className="bg-[#0f766e] text-white px-4 py-2 rounded-lg hover:bg-[#0d665c]"
             >
               View Billing
             </button>
@@ -130,6 +152,7 @@ export function ProtectedRoute({
   }
 
   // User is authenticated and authorized
+  console.log('Access granted for user:', profile.email, 'role:', profile.role)
   return <>{children}</>
 }
 
