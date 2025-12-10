@@ -4,7 +4,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 
-// Types based on live database schema (yplmrwismtztyomrvzvj)
 interface UserProfile {
   id: string
   auth_id: string
@@ -16,9 +15,6 @@ interface UserProfile {
   role: 'owner' | 'admin' | 'staff'
   avatar_url: string | null
   is_active: boolean
-  last_seen_at: string | null
-  created_at: string
-  updated_at: string
 }
 
 interface Organization {
@@ -27,9 +23,6 @@ interface Organization {
   slug: string
   subscription_plan: 'starter' | 'growth' | 'pro' | null
   subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid'
-  trial_ends_at: string | null
-  stripe_customer_id: string | null
-  stripe_subscription_id: string | null
 }
 
 interface AuthContextType {
@@ -51,181 +44,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = createClient()
 
-  // Load user profile with organization context
-  const loadUserProfile = async (userId: string) => {
-    try {
-      console.log('Loading user profile for:', userId)
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user)
+        loadProfile(session.user.id)
+      } else {
+        setLoading(false)
+      }
+    })
 
-      // Single query to get user + organization (efficient)
-      const { data: userWithOrg, error } = await supabase
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user)
+        loadProfile(session.user.id)
+      } else {
+        setUser(null)
+        setProfile(null)
+        setOrganization(null)
+        setLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const loadProfile = async (userId: string) => {
+    try {
+      // Simple direct query
+      const { data: userProfile, error: userError } = await supabase
         .from('users')
-        .select(`
-          *,
-          organization:organizations(*)
-        `)
+        .select('*')
         .eq('auth_id', userId)
         .single()
 
-      if (error) {
-        console.error('Error loading user profile:', error)
-        // Don't throw here - let auth state handle it
+      if (userError || !userProfile) {
+        console.error('User profile error:', userError)
+        setLoading(false)
         return
       }
 
-      if (userWithOrg) {
-        console.log('User profile loaded:', userWithOrg.email, userWithOrg.organization?.name)
-        setProfile(userWithOrg)
-        setOrganization(userWithOrg.organization as Organization)
-        
-        // Update last seen timestamp
-        await supabase
-          .from('users')
-          .update({ last_seen_at: new Date().toISOString() })
-          .eq('id', userWithOrg.id)
-          .then(() => console.log('Last seen updated'))
+      setProfile(userProfile)
+
+      // Get organization
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', userProfile.organization_id)
+        .single()
+
+      if (orgError || !org) {
+        console.error('Organization error:', orgError)
+        setLoading(false)
+        return
       }
+
+      setOrganization(org)
+      setLoading(false)
+
     } catch (error) {
-      console.error('Error loading user profile:', error)
+      console.error('Profile loading error:', error)
+      setLoading(false)
     }
   }
 
-  // Initialize authentication state
-  useEffect(() => {
-    let mounted = true
-
-    const initializeAuth = async () => {
-      try {
-        console.log('Initializing auth...')
-        
-        // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession()
-        
-        if (error) {
-          console.error('Session error:', error)
-          if (mounted) setLoading(false)
-          return
-        }
-
-        if (session?.user) {
-          console.log('Initial session found:', session.user.email)
-          if (mounted) {
-            setUser(session.user)
-            await loadUserProfile(session.user.id)
-          }
-        } else {
-          console.log('No initial session')
-        }
-        
-        if (mounted) setLoading(false)
-      } catch (error) {
-        console.error('Auth initialization error:', error)
-        if (mounted) setLoading(false)
-      }
-    }
-
-    initializeAuth()
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.email)
-        
-        if (!mounted) return
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user)
-          setLoading(true) // Show loading while getting profile
-          await loadUserProfile(session.user.id)
-          setLoading(false)
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null)
-          setProfile(null)
-          setOrganization(null)
-          setLoading(false)
-        } else if (session?.user) {
-          setUser(session.user)
-          if (!profile) {
-            setLoading(true)
-            await loadUserProfile(session.user.id)
-            setLoading(false)
-          }
-        } else {
-          setUser(null)
-          setProfile(null)
-          setOrganization(null)
-          setLoading(false)
-        }
-      }
-    )
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
-
   const signOut = async () => {
-    try {
-      console.log('Signing out...')
-      await supabase.auth.signOut()
-      setUser(null)
-      setProfile(null)
-      setOrganization(null)
-    } catch (error) {
-      console.error('Sign out error:', error)
-    }
+    await supabase.auth.signOut()
   }
 
   const refreshProfile = async () => {
     if (user) {
-      await loadUserProfile(user.id)
+      await loadProfile(user.id)
     }
   }
 
-  const value: AuthContextType = {
-    user,
-    profile,
-    organization,
-    loading,
-    signOut,
-    refreshProfile
-  }
-
-  console.log('Auth state:', { 
-    user: user?.email, 
-    profile: profile?.email, 
-    organization: organization?.name, 
-    loading 
-  })
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{
+      user,
+      profile,
+      organization,
+      loading,
+      signOut,
+      refreshProfile
+    }}>
       {children}
     </AuthContext.Provider>
   )
 }
 
-// Hook to use authentication context
 export function useAuth() {
   const context = useContext(AuthContext)
-  
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
-  
   return context
 }
 
-// Permission checking hooks based on live database roles
 export function usePermissions() {
   const { profile } = useAuth()
-  
   return {
     canViewBilling: profile?.role === 'owner',
     canManageTeam: ['owner', 'admin'].includes(profile?.role || ''),
-    canDeletePets: ['owner', 'admin'].includes(profile?.role || ''),
-    canInviteUsers: ['owner', 'admin'].includes(profile?.role || ''),
-    canViewReports: ['owner', 'admin'].includes(profile?.role || ''),
     role: profile?.role || 'staff'
   }
 }
