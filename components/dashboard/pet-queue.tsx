@@ -4,29 +4,12 @@ import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-
-// Pet interface matching live database schema
-interface Pet {
-  id: string
-  tracking_id: string
-  name: string
-  pet_type: 'dog' | 'cat' | 'bird' | 'rabbit' | 'other'
-  breed?: string
-  owner_first_name: string
-  owner_last_name: string
-  owner_full_name: string
-  owner_email: string
-  owner_phone?: string
-  service_type: 'private' | 'individual' | 'communal'
-  status: 'received' | 'prepared' | 'in_chamber' | 'cremated' | 'packaged' | 'ready' | 'completed'
-  created_at: string
-  created_by_name?: string
-}
+import { PetWithDetails } from '@/lib/types/database'
 
 interface PetQueueProps {
-  pets: Pet[]
-  onPetClick?: (pet: Pet) => void
-  onNextStepClick?: (pet: Pet) => void
+  pets: PetWithDetails[]
+  onPetClick?: (pet: PetWithDetails) => void
+  onNextStepClick?: (pet: PetWithDetails) => void
   loading?: boolean
 }
 
@@ -108,9 +91,9 @@ function formatTimeAgo(dateString: string): string {
 
 // Individual pet card component for queue
 function PetQueueCard({ pet, onPetClick, onNextStepClick }: {
-  pet: Pet
-  onPetClick?: (pet: Pet) => void
-  onNextStepClick?: (pet: Pet) => void
+  pet: PetWithDetails
+  onPetClick?: (pet: PetWithDetails) => void
+  onNextStepClick?: (pet: PetWithDetails) => void
 }) {
   const statusConfig = getStatusConfig(pet.status)
   const timeSinceCreated = formatTimeAgo(pet.created_at)
