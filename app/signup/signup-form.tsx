@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from 'next/navigation'
 
 export function SignupForm() {
@@ -18,12 +17,6 @@ export function SignupForm() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   
   const router = useRouter()
-  
-  // Create Supabase client
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
   // Validation functions
   const validateField = (fieldName: string, value: string): string => {
@@ -87,51 +80,27 @@ export function SignupForm() {
     }
 
     try {
-      // Create user account with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email.toLowerCase().trim(),
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.firstName.trim(),
-            last_name: formData.lastName.trim(),
-            business_name: formData.businessName.trim()
-          }
-        }
-      })
-
-      if (authError) throw authError
-      if (!authData.user) throw new Error('Failed to create account')
-
-      // Create organization record using service role
-      const slug = formData.businessName.toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim()
-
-      // Call our API endpoint to create organization and user profile
+      // Call our signup API endpoint
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: authData.user.id,
           email: formData.email.toLowerCase().trim(),
+          password: formData.password,
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
-          businessName: formData.businessName.trim(),
-          slug: slug
+          businessName: formData.businessName.trim()
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create organization')
+        throw new Error(errorData.error || 'Failed to create account')
       }
 
-      // Success - redirect to dashboard (or email verification if needed)
+      // Success - redirect to dashboard
       router.push('/dashboard')
 
     } catch (error: any) {
