@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user)
-        loadProfile(session.user.id)
+        loadProfile()
       } else {
         setLoading(false)
       }
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUser(session.user)
-        loadProfile(session.user.id)
+        loadProfile()
       } else {
         setUser(null)
         setProfile(null)
@@ -71,37 +71,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async () => {
     try {
-      // Simple direct query
-      const { data: userProfile, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('auth_id', userId)
-        .single()
-
-      if (userError || !userProfile) {
-        console.error('User profile error:', userError)
+      // Use our API endpoint instead of direct database query
+      const response = await fetch('/api/auth/profile')
+      
+      if (!response.ok) {
+        console.error('Profile API error:', response.status)
         setLoading(false)
         return
       }
 
-      setProfile(userProfile)
-
-      // Get organization
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', userProfile.organization_id)
-        .single()
-
-      if (orgError || !org) {
-        console.error('Organization error:', orgError)
-        setLoading(false)
-        return
+      const result = await response.json()
+      
+      if (result.success) {
+        setProfile(result.data.profile)
+        setOrganization(result.data.organization)
+      } else {
+        console.error('Profile fetch failed:', result.error)
       }
-
-      setOrganization(org)
+      
       setLoading(false)
 
     } catch (error) {
@@ -115,9 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const refreshProfile = async () => {
-    if (user) {
-      await loadProfile(user.id)
-    }
+    await loadProfile()
   }
 
   return (
