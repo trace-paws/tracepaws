@@ -1,45 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-
-// Type definitions based on live database schema (yplmrwismtztyomrvzvj)
-export interface Pet {
-  id: string
-  organization_id: string
-  tracking_id: string
-  name: string
-  pet_type: 'dog' | 'cat' | 'bird' | 'rabbit' | 'other'
-  breed?: string
-  weight?: number
-  owner_first_name: string
-  owner_last_name: string
-  owner_full_name: string
-  owner_email: string
-  owner_phone?: string
-  service_type: 'private' | 'individual' | 'communal'
-  instructions?: string
-  referring_vet?: string
-  status: 'received' | 'prepared' | 'in_chamber' | 'cremated' | 'packaged' | 'ready' | 'completed'
-  created_by: string
-  created_at: string
-  updated_at: string
-}
-
-export interface Organization {
-  id: string
-  name: string
-  slug: string
-  subscription_plan: 'starter' | 'growth' | 'pro' | null
-  subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid'
-  stripe_customer_id: string | null
-  stripe_subscription_id: string | null
-  trial_ends_at: string | null
-}
-
-export interface DashboardStats {
-  awaiting: number
-  in_progress: number
-  ready: number
-  today_intake: number
-}
+import { DashboardStats, Pet, PetWithDetails, Organization } from '@/lib/types/database'
 
 export class DatabaseClient {
   private static supabase = createClient()
@@ -69,7 +29,7 @@ export class DatabaseClient {
     status?: string
     search?: string
     limit?: number
-  }): Promise<Pet[]> {
+  }): Promise<PetWithDetails[]> {
     let query = this.supabase
       .from('pets')
       .select(`
@@ -95,11 +55,15 @@ export class DatabaseClient {
       throw new Error(`Failed to load pets: ${error.message}`)
     }
 
-    return data || []
+    // Transform data to match PetWithDetails interface
+    return (data || []).map(pet => ({
+      ...pet,
+      created_by_name: pet.created_by_user?.full_name
+    }))
   }
 
   // Create new pet with automatic tracking ID
-  static async createPet(petData: Omit<Pet, 'id' | 'tracking_id' | 'created_at' | 'updated_at' | 'owner_full_name'>): Promise<Pet> {
+  static async createPet(petData: Omit<Pet, 'id' | 'tracking_id' | 'created_at' | 'updated_at' | 'owner_full_name' | 'intake_at' | 'search_vector'>): Promise<Pet> {
     const { data, error } = await this.supabase
       .from('pets')
       .insert(petData)
