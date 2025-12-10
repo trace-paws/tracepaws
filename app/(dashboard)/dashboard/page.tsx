@@ -12,28 +12,7 @@ import { Sidebar } from '@/components/dashboard/navigation/sidebar'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
-// Dashboard stats interface
-interface DashboardStats {
-  awaiting: number
-  in_progress: number
-  ready: number
-  today_intake: number
-}
-
-// Pet interface for queue display
-interface Pet {
-  id: string
-  tracking_id: string
-  name: string
-  pet_type: 'dog' | 'cat' | 'bird' | 'rabbit' | 'other'
-  breed?: string
-  owner_full_name: string
-  service_type: string
-  status: string
-  created_at: string
-  created_by_name?: string
-}
+import { DashboardStats, PetWithDetails } from '@/lib/types/database'
 
 function DashboardContent() {
   const { profile, organization } = useAuth()
@@ -44,7 +23,7 @@ function DashboardContent() {
     ready: 0,
     today_intake: 0
   })
-  const [pets, setPets] = useState<Pet[]>([])
+  const [pets, setPets] = useState<PetWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -92,11 +71,11 @@ function DashboardContent() {
   }
 
   // Handle pet actions
-  const handlePetClick = (pet: Pet) => {
+  const handlePetClick = (pet: PetWithDetails) => {
     router.push(`/pets/${pet.id}`)
   }
 
-  const handleNextStepClick = (pet: Pet) => {
+  const handleNextStepClick = (pet: PetWithDetails) => {
     router.push(`/pets/${pet.id}/checkpoint`)
   }
 
@@ -152,7 +131,10 @@ function DashboardContent() {
                   <div className="w-2 h-2 rounded-full bg-green-500"></div>
                   <span className="text-sm text-gray-600">Live</span>
                 </div>
-                <Button className="bg-[#0f766e] hover:bg-[#0d665c]">
+                <Button 
+                  className="bg-[#0f766e] hover:bg-[#0d665c]"
+                  onClick={() => router.push('/pets/new')}
+                >
                   + New Intake
                 </Button>
               </div>
