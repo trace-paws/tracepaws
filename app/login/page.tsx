@@ -1,15 +1,17 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnTo = searchParams.get('returnTo') || '/dashboard'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -32,12 +34,16 @@ export default function LoginPage() {
       if (authError) throw authError
       if (!data.user) throw new Error('Login failed')
 
-      // Success - redirect to dashboard
-      router.push('/dashboard')
+      // Success - redirect to dashboard (or returnTo)
+      router.push(returnTo)
 
-    } catch (error) {
-      console.error('Login error:', error)
-      setError(error instanceof Error ? error.message : 'Login failed')
+    } catch (err: any) {
+      console.error('Login error:', err)
+      const message =
+        err?.message === 'Invalid login credentials'
+          ? 'Invalid email or password'
+          : err?.message || 'Login failed'
+      setError(message)
     } finally {
       setLoading(false)
     }

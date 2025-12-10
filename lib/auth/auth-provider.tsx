@@ -15,6 +15,7 @@ interface UserProfile {
   role: 'owner' | 'admin' | 'staff'
   avatar_url: string | null
   is_active: boolean
+  last_seen_at?: string | null
 }
 
 interface Organization {
@@ -23,6 +24,9 @@ interface Organization {
   slug: string
   subscription_plan: 'starter' | 'growth' | 'pro' | null
   subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid'
+  stripe_customer_id?: string | null
+  stripe_subscription_id?: string | null
+  trial_ends_at?: string | null
 }
 
 interface AuthContextType {
@@ -30,6 +34,7 @@ interface AuthContextType {
   profile: UserProfile | null
   organization: Organization | null
   loading: boolean
+  error: string | null
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -41,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -56,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user)
         loadProfile()
@@ -64,43 +70,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null)
         setProfile(null)
         setOrganization(null)
+        setError(null)
         setLoading(false)
       }
     })
 
     return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadProfile = async () => {
     try {
-      // Use our API endpoint instead of direct database query
+      setError(null)
       const response = await fetch('/api/auth/profile')
-      
+
       if (!response.ok) {
-        console.error('Profile API error:', response.status)
+        const body = await response.json().catch(() => null)
+        const message = body?.error || `Profile API error (${response.status})`
+
+        // If unauthorized, clear auth state
+        if (response.status === 401) {
+          setUser(null)
+          setProfile(null)
+          setOrganization(null)
+        }
+
+        setError(message)
         setLoading(false)
         return
       }
 
       const result = await response.json()
-      
+
       if (result.success) {
         setProfile(result.data.profile)
         setOrganization(result.data.organization)
       } else {
-        console.error('Profile fetch failed:', result.error)
+        setError(result.error || 'Failed to load profile')
       }
-      
-      setLoading(false)
 
-    } catch (error) {
-      console.error('Profile loading error:', error)
+      setLoading(false)
+    } catch (err) {
+      console.error('Profile loading error:', err)
+      setError(err instanceof Error ? err.message : 'Profile load failed')
       setLoading(false)
     }
   }
 
   const signOut = async () => {
     await supabase.auth.signOut()
+    setUser(null)
+    setProfile(null)
+    setOrganization(null)
+    setError(null)
   }
 
   const refreshProfile = async () => {
@@ -113,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profile,
       organization,
       loading,
+      error,
       signOut,
       refreshProfile
     }}>

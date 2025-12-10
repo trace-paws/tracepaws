@@ -17,15 +17,8 @@ export function ProtectedRoute({
   fallback,
   requireActiveSubscription = false
 }: ProtectedRouteProps) {
-  const { user, profile, organization, loading } = useAuth()
+  const { user, profile, organization, loading, error } = useAuth()
   const router = useRouter()
-
-  console.log('ProtectedRoute check:', { 
-    user: user?.email, 
-    profile: profile?.email, 
-    loading,
-    hasOrganization: !!organization 
-  })
 
   // Loading state - IMPORTANT: Don't redirect while loading
   if (loading) {
@@ -39,9 +32,29 @@ export function ProtectedRoute({
     )
   }
 
+  // Surface profile load errors gracefully
+  if (error && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="max-w-md text-center space-y-4">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h2 className="text-xl font-bold">Authentication Required</h2>
+          <p className="text-gray-600">{error}</p>
+          <button 
+            onClick={() => router.push('/login')}
+            className="bg-[#0f766e] text-white px-4 py-2 rounded-lg hover:bg-[#0d665c]"
+          >
+            Back to Login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // Not authenticated - redirect to login
   if (!user) {
-    console.log('No user found, redirecting to login')
     if (fallback) {
       return <>{fallback}</>
     }
@@ -88,7 +101,6 @@ export function ProtectedRoute({
 
   // Role checking
   if (!requiredRole.includes(profile.role)) {
-    console.log('Role check failed:', { userRole: profile.role, requiredRole })
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="max-w-md text-center space-y-4">
@@ -152,7 +164,6 @@ export function ProtectedRoute({
   }
 
   // User is authenticated and authorized
-  console.log('Access granted for user:', profile.email, 'role:', profile.role)
   return <>{children}</>
 }
 
